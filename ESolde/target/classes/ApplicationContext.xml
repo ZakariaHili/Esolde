@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:s="http://www.springframework.org/schema/security"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+
+
+
+
+	<bean id="datasource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+		<property name="url" value="jdbc:mysql://localhost:3306/ESolde"></property>
+		<property name="username" value="root"></property>
+		
+		<property name="password" value=""></property>
+	</bean>
+
+
+
+	<bean id="persistenceUnitManager"
+		class="org.springframework.orm.jpa.persistenceunit.DefaultPersistenceUnitManager">
+		<property name="defaultDataSource" ref="datasource"></property>
+		<property name="persistenceXmlLocations">
+			<list>
+				<value>classpath*:META-INF/persistence.xml</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="entityManagerFactory"
+		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<property name="persistenceUnitManager" ref="persistenceUnitManager"></property>
+		<property name="persistenceUnitName" value="UP_ESolde"></property>
+	</bean>
+	<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="entityManagerFactory"></property>
+	</bean>
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<context:annotation-config></context:annotation-config>
+
+	<context:component-scan base-package="com.HILI.esolde.dao.*" />
+	<context:component-scan base-package="com.HILI.esolde.metier.*" />
+	<context:component-scan base-package="com.HILI.esolde.controllers.*" />
+<mvc:resources mapping="/resources/**" location="/resources/" />
+
+	<bean id="dao" class="com.HILI.ESolde.Dao.EsoldeDaoImpl"></bean>
+	<bean id="Equipe_ESoldeMetier" class="com.HILI.ESolde.metier.Equipe_ESoldeMetierImpl">
+		<qualifier value="Equipe_ESoldeMetier" />
+		<property name="dao" ref="dao"></property>
+	</bean>
+
+	<bean id="AdministrateurMetier" class="com.HILI.ESolde.metier.AdministrateurMetierImpl">
+		<qualifier value="AdministrateurMetier" />
+		<property name="dao" ref="dao"></property>
+	</bean>
+
+	<bean id="Representant_magasinMetier" class="com.HILI.ESolde.metier.Representant_magasinMetierImpl">
+		<qualifier value="Representant_magasinMetier" />
+		<property name="dao" ref="dao"></property>
+	</bean>
+
+	<bean id="UtilisateurMetier" class="com.HILI.ESolde.metier.UtilisateurMetierImpl">
+		<qualifier value="UtilisateurMetier" />
+		<property name="dao" ref="dao"></property>
+	</bean>
+	<bean id="InternauteMetier" class="com.HILI.ESolde.metier.InternauteMetierImpl">
+		<qualifier value="InternauteMetier" />
+		<property name="dao" ref="dao"></property>
+	</bean>
+
+<s:http auto-config="true" use-expressions="true">
+		
+		
+		<s:intercept-url pattern="/Representant/**" access="hasRole('ROLE_REPRESENTANT')" />
+		<s:intercept-url pattern="/Equipe/**" access="hasAnyRole('ROLE_ADMIN','ROLE_EQUIPE')" />
+		<s:intercept-url pattern="/Utilisateur/**" access="hasRole('ROLE_USER')" />
+		<!-- access-denied-handler error-page="/403" / -->
+		<s:form-login 
+		login-page="/login" 
+		login-processing-url="/j_spring_security_check" 
+			default-target-url="/index" 
+			authentication-failure-url="/login?error" 
+			username-parameter="Login" 
+			password-parameter="Password" />
+	
+		<s:logout logout-success-url="/index" logout-url="/logout" />
+		<!-- enable csrf protection -->
+		<s:csrf disabled="true"/>
+	</s:http>
+
+
+	<s:authentication-manager>
+		<s:authentication-provider>
+			<s:jdbc-user-service data-source-ref="datasource"
+				users-by-username-query="select Login ,Password, activated from user where Login =?"
+				authorities-by-username-query="select Login , Role from user u,role r where
+				 r.id_user=u.id_user and u.Login =?  " />
+		</s:authentication-provider>
+	</s:authentication-manager>
+
+	
+
+</beans>
